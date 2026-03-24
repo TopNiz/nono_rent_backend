@@ -1,0 +1,20 @@
+[project]
+name = "nono_rent_backend"
+version = "0.1.0"
+description = "Backend for nono_rent"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "reportlab",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
