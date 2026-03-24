@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn",
     "sqlmodel",
     "reportlab",
+    "pydantic[email]",
 ]
 
 [tool.uv]
