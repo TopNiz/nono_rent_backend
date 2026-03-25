@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 from uuid import UUID
 from pydantic import BaseModel
 from datetime import date
 from nono_rent_backend.models.lease import Lease, LeaseType
 from nono_rent_backend.database import get_session
+from nono_rent_backend.services.lease_service import LeaseService
 
 
 class LeaseCreate(BaseModel):
@@ -34,21 +35,17 @@ router = APIRouter(prefix="/leases", tags=["leases"])
 
 @router.post("/", response_model=Lease)
 def create_lease(lease_data: LeaseCreate, session: Session = Depends(get_session)):
-    lease = Lease(**lease_data.model_dump())
-    session.add(lease)
-    session.commit()
-    session.refresh(lease)
-    return lease
+    return LeaseService.create_lease(session, lease_data.model_dump())
 
 
 @router.get("/", response_model=list[Lease])
 def read_leases(session: Session = Depends(get_session)):
-    return session.exec(select(Lease)).all()
+    return LeaseService.get_all_leases(session)
 
 
 @router.get("/{lease_id}", response_model=Lease)
 def read_lease(lease_id: UUID, session: Session = Depends(get_session)):
-    lease = session.get(Lease, lease_id)
+    lease = LeaseService.get_lease_by_id(session, lease_id)
     if not lease:
         raise HTTPException(status_code=404, detail="Lease not found")
     return lease
@@ -58,21 +55,16 @@ def read_lease(lease_id: UUID, session: Session = Depends(get_session)):
 def update_lease(
     lease_id: UUID, lease_update: LeaseUpdate, session: Session = Depends(get_session)
 ):
-    lease = session.get(Lease, lease_id)
+    lease = LeaseService.update_lease(
+        session, lease_id, lease_update.model_dump(exclude_unset=True)
+    )
     if not lease:
         raise HTTPException(status_code=404, detail="Lease not found")
-    for key, value in lease_update.model_dump(exclude_unset=True).items():
-        setattr(lease, key, value)
-    session.commit()
-    session.refresh(lease)
     return lease
 
 
 @router.delete("/{lease_id}")
 def delete_lease(lease_id: UUID, session: Session = Depends(get_session)):
-    lease = session.get(Lease, lease_id)
-    if not lease:
+    if not LeaseService.delete_lease(session, lease_id):
         raise HTTPException(status_code=404, detail="Lease not found")
-    session.delete(lease)
-    session.commit()
     return {"ok": True}

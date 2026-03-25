@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from fastapi.responses import StreamingResponse
+from sqlmodel import Session
 from uuid import UUID
 from pydantic import BaseModel
 from datetime import date
 from nono_rent_backend.models.quittance import Quittance, QuittanceStatus
 from nono_rent_backend.database import get_session
+from nono_rent_backend.services.quittance_service import QuittanceService
 
 
 class QuittanceCreate(BaseModel):
@@ -36,21 +38,17 @@ router = APIRouter(prefix="/quittances", tags=["quittances"])
 def create_quittance(
     quittance_data: QuittanceCreate, session: Session = Depends(get_session)
 ):
-    quittance = Quittance(**quittance_data.model_dump())
-    session.add(quittance)
-    session.commit()
-    session.refresh(quittance)
-    return quittance
+    return QuittanceService.create_quittance(session, quittance_data.model_dump())
 
 
 @router.get("/", response_model=list[Quittance])
 def read_quittances(session: Session = Depends(get_session)):
-    return session.exec(select(Quittance)).all()
+    return QuittanceService.get_all_quittances(session)
 
 
 @router.get("/{quittance_id}", response_model=Quittance)
 def read_quittance(quittance_id: UUID, session: Session = Depends(get_session)):
-    quittance = session.get(Quittance, quittance_id)
+    quittance = QuittanceService.get_quittance_by_id(session, quittance_id)
     if not quittance:
         raise HTTPException(status_code=404, detail="Quittance not found")
     return quittance
@@ -62,21 +60,29 @@ def update_quittance(
     quittance_update: QuittanceUpdate,
     session: Session = Depends(get_session),
 ):
-    quittance = session.get(Quittance, quittance_id)
+    quittance = QuittanceService.update_quittance(
+        session, quittance_id, quittance_update.model_dump(exclude_unset=True)
+    )
     if not quittance:
         raise HTTPException(status_code=404, detail="Quittance not found")
-    for key, value in quittance_update.model_dump(exclude_unset=True).items():
-        setattr(quittance, key, value)
-    session.commit()
-    session.refresh(quittance)
     return quittance
 
 
 @router.delete("/{quittance_id}")
 def delete_quittance(quittance_id: UUID, session: Session = Depends(get_session)):
-    quittance = session.get(Quittance, quittance_id)
-    if not quittance:
+    if not QuittanceService.delete_quittance(session, quittance_id):
         raise HTTPException(status_code=404, detail="Quittance not found")
-    session.delete(quittance)
-    session.commit()
     return {"ok": True}
+
+
+@router.get("/{quittance_id}/pdf")
+def export_quittance_pdf(quittance_id: UUID, session: Session = Depends(get_session)):
+    try:
+        pdf_buffer = QuittanceService.export_pdf(session, quittance_id)
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=quittance.pdf"},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
