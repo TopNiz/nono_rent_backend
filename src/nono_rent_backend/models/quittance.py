@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 from pydantic import field_validator
 from enum import Enum
 from datetime import date
@@ -17,7 +17,8 @@ class QuittanceStatus(str, Enum):
 
 class Quittance(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    lease_id: int = Field(foreign_key="lease.id")
+    lease_id: UUID = Field(foreign_key="lease.id")
+    lease: "Lease" = Relationship()
     period_month: int
     period_year: int
     rent_amount: float

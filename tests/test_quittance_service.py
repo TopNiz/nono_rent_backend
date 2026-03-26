@@ -26,7 +26,7 @@ def session():
 
 def test_create_quittance(session: Session):
     quittance_data = {
-        "lease_id": 1,
+        "lease_id": "12345678-1234-5678-9012-123456789012",
         "period_month": 1,
         "period_year": 2024,
         "rent_amount": 1000.0,
@@ -41,7 +41,7 @@ def test_create_quittance(session: Session):
 
 def test_get_quittance_by_id(session: Session):
     quittance_data = {
-        "lease_id": 1,
+        "lease_id": "12345678-1234-5678-9012-123456789012",
         "period_month": 1,
         "period_year": 2024,
         "rent_amount": 1000.0,
@@ -62,7 +62,7 @@ def test_get_all_quittances(session: Session):
 
 def test_update_quittance(session: Session):
     quittance_data = {
-        "lease_id": 1,
+        "lease_id": "12345678-1234-5678-9012-123456789012",
         "period_month": 1,
         "period_year": 2024,
         "rent_amount": 1000.0,
@@ -79,7 +79,7 @@ def test_update_quittance(session: Session):
 
 def test_delete_quittance(session: Session):
     quittance_data = {
-        "lease_id": 1,
+        "lease_id": "12345678-1234-5678-9012-123456789012",
         "period_month": 1,
         "period_year": 2024,
         "rent_amount": 1000.0,

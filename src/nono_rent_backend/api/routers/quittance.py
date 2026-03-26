@@ -10,7 +10,7 @@ from nono_rent_backend.services.quittance_service import QuittanceService
 
 
 class QuittanceCreate(BaseModel):
-    lease_id: int
+    lease_id: UUID
     period_month: int
     period_year: int
     rent_amount: float
@@ -21,7 +21,7 @@ class QuittanceCreate(BaseModel):
 
 
 class QuittanceUpdate(BaseModel):
-    lease_id: int | None = None
+    lease_id: UUID | None = None
     period_month: int | None = None
     period_year: int | None = None
     rent_amount: float | None = None
@@ -31,7 +31,7 @@ class QuittanceUpdate(BaseModel):
     status: QuittanceStatus | None = None
 
 
-router = APIRouter(prefix="/quittances", tags=["quittances"])
+router = APIRouter(prefix="/receipts", tags=["receipts"])
 
 
 @router.post("/", response_model=Quittance)
@@ -73,6 +73,19 @@ def delete_quittance(quittance_id: UUID, session: Session = Depends(get_session)
     if not QuittanceService.delete_quittance(session, quittance_id):
         raise HTTPException(status_code=404, detail="Quittance not found")
     return {"ok": True}
+
+
+@router.post("/generate")
+def generate_receipt_pdf(
+    quittance_data: QuittanceCreate, session: Session = Depends(get_session)
+) -> StreamingResponse:
+    quittance = QuittanceService.create_quittance(session, quittance_data.model_dump())
+    pdf_buffer = QuittanceService.export_pdf(session, quittance.id)
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=quittance.pdf"},
+    )
 
 
 @router.get("/{quittance_id}/pdf")

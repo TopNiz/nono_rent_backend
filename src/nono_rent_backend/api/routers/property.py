@@ -9,11 +9,13 @@ from nono_rent_backend.services.property_service import PropertyService
 class PropertyCreate(BaseModel):
     address: str
     type: PropertyType
+    landlord_id: int
 
 
 class PropertyUpdate(BaseModel):
     address: str | None = None
     type: PropertyType | None = None
+    landlord_id: int | None = None
 
 
 router = APIRouter(prefix="/properties", tags=["properties"])

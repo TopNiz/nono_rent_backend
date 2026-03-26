@@ -2,6 +2,7 @@ import pytest
 from datetime import date
 from pydantic import ValidationError
 from nono_rent_backend.models.quittance import Quittance, QuittanceStatus
+from uuid import UUID
 import os
 import tempfile
 
@@ -10,7 +11,7 @@ def test_quittance_creation():
     """Test creating a Quittance instance."""
     quittance = Quittance.model_validate(
         {
-            "lease_id": 1,
+            "lease_id": "12345678-1234-5678-9012-123456789012",
             "period_month": 1,
             "period_year": 2024,
             "rent_amount": 1000.0,
@@ -20,7 +21,7 @@ def test_quittance_creation():
             "status": QuittanceStatus.GENERATED,
         }
     )
-    assert quittance.lease_id == 1
+    assert quittance.lease_id == UUID("12345678-1234-5678-9012-123456789012")
     assert quittance.period_month == 1
     assert quittance.period_year == 2024
     assert quittance.rent_amount == 1000.0
@@ -35,7 +36,7 @@ def test_quittance_invalid_month():
     with pytest.raises(ValidationError):
         Quittance.model_validate(
             {
-                "lease_id": 1,
+                "lease_id": "12345678-1234-5678-9012-123456789012",
                 "period_month": 13,
                 "period_year": 2024,
                 "rent_amount": 1000.0,
@@ -67,7 +68,7 @@ def test_quittance_negative_amounts():
 def test_generate_pdf():
     """Test PDF generation."""
     quittance = Quittance(
-        lease_id=1,
+        lease_id=UUID("12345678-1234-5678-9012-123456789012"),
         period_month=1,
         period_year=2024,
         rent_amount=1000.0,
