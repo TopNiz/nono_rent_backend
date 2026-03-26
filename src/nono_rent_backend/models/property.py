@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 from pydantic import field_validator
 from enum import Enum
 
@@ -12,6 +12,8 @@ class Property(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     address: str
     type: PropertyType
+    landlord_id: int = Field(foreign_key="landlord.id")
+    landlord: "Landlord" = Relationship()
 
     @field_validator("address")
     @classmethod

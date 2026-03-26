@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 from pydantic import field_validator
 from enum import Enum
 from datetime import date
@@ -13,7 +13,9 @@ class LeaseType(str, Enum):
 class Lease(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     tenant_id: int = Field(foreign_key="tenant.id")
+    tenant: "Tenant" = Relationship()
     property_id: int = Field(foreign_key="property.id")
+    property: "Property" = Relationship()
     start_date: date
     end_date: date
     rent_amount: float

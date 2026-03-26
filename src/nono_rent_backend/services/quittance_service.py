@@ -3,6 +3,7 @@ from sqlalchemy.orm import joinedload
 from uuid import UUID
 from nono_rent_backend.models.quittance import Quittance
 from nono_rent_backend.models.lease import Lease
+from nono_rent_backend.models.property import Property
 from typing import List, Optional
 from datetime import date
 from nono_rent_backend.models.quittance import QuittanceStatus
@@ -57,17 +58,28 @@ class QuittanceService:
 
     @staticmethod
     def export_pdf(session: Session, quittance_id: UUID) -> BytesIO:
-        statement = (
-            select(Quittance)
-            .where(Quittance.id == quittance_id)
-            .options(
-                joinedload(Quittance.lease).joinedload(Lease.tenant),
-                joinedload(Quittance.lease).joinedload(Lease.property),
-            )
-        )
-        quittance = session.exec(statement).first()
+        from nono_rent_backend.models.tenant import Tenant
+        from nono_rent_backend.models.landlord import Landlord
+
+        quittance = session.get(Quittance, quittance_id)
         if not quittance:
             raise ValueError("Quittance not found")
+
+        lease = session.get(Lease, quittance.lease_id)
+        if not lease:
+            raise ValueError("Lease not found")
+
+        tenant = session.get(Tenant, lease.tenant_id)
+        if not tenant:
+            raise ValueError("Tenant not found")
+
+        property = session.get(Property, lease.property_id)
+        if not property:
+            raise ValueError("Property not found")
+
+        landlord = session.get(Landlord, property.landlord_id)
+        if not landlord:
+            raise ValueError("Landlord not found")
 
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -79,19 +91,57 @@ class QuittanceService:
         story.append(title)
         story.append(Spacer(1, 12))
 
-        # Quittance details in French
+        # Landlord
+        landlord_text = f"Propriétaire: {landlord.first_name} {landlord.last_name}<br/>{landlord.address}"
+        story.append(Paragraph(landlord_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Tenant
+        tenant_text = (
+            f"Locataire: {tenant.first_name} {tenant.last_name}<br/>{tenant.address}"
+        )
+        story.append(Paragraph(tenant_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Property
+        property_text = f"Adresse du bien: {property.address}"
+        story.append(Paragraph(property_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Period
+        month_names = [
+            "janvier",
+            "février",
+            "mars",
+            "avril",
+            "mai",
+            "juin",
+            "juillet",
+            "août",
+            "septembre",
+            "octobre",
+            "novembre",
+            "décembre",
+        ]
+        period_text = f"Période: {month_names[quittance.period_month - 1]} {quittance.period_year}"
+        story.append(Paragraph(period_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Amounts
         details = f"""
-        Locataire: {quittance.lease.tenant.first_name} {quittance.lease.tenant.last_name}<br/>
-        Propriété: {quittance.lease.property.address}<br/>
-        Période: {quittance.period_month}/{quittance.period_year}<br/>
-        Montant du loyer: {quittance.rent_amount} €<br/>
-        Charges: {quittance.charges_amount} €<br/>
-        Total: {quittance.total_amount} €<br/>
-        Date de paiement: {quittance.payment_date}<br/>
-        Statut: {quittance.status.value}
+        Montant du loyer: {quittance.rent_amount:.2f} €<br/>
+        Charges: {quittance.charges_amount:.2f} €<br/>
+        Total: {quittance.total_amount:.2f} €<br/>
+        Date de paiement: {quittance.payment_date.strftime("%d/%m/%Y")}<br/>
         """
         para = Paragraph(details, styles["Normal"])
         story.append(para)
+        story.append(Spacer(1, 24))
+
+        # Signature
+        signature_text = "Signature du propriétaire:"
+        story.append(Paragraph(signature_text, styles["Normal"]))
+        story.append(Spacer(1, 48))
 
         doc.build(story)
         buffer.seek(0)

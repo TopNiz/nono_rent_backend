@@ -9,6 +9,7 @@ def test_property_creation():
         {
             "address": "123 Rue de la Paix, Paris",
             "type": "meublé",
+            "landlord_id": 1,
         }
     )
     assert prop.address == "123 Rue de la Paix, Paris"
@@ -22,6 +23,7 @@ def test_property_invalid_address():
             {
                 "address": "",
                 "type": "meublé",
+                "landlord_id": 1,
             }
         )
 
@@ -33,5 +35,6 @@ def test_property_invalid_type():
             {
                 "address": "123 Rue de la Paix, Paris",
                 "type": "invalid",
+                "landlord_id": 1,
             }
         )
