@@ -1,23 +1,28 @@
-from sqlmodel import create_engine, Session
+import os
+from collections.abc import Generator
+
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, create_engine
 
-# For testing, use in-memory SQLite
-DATABASE_URL = "sqlite:///:memory:"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/app.db")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+engine_kwargs: dict[str, object] = {"connect_args": {"check_same_thread": False}}
+if DATABASE_URL.endswith(":memory:"):
+    engine_kwargs["poolclass"] = StaticPool
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 
-def get_session():
+def get_session() -> Generator[Session, None, None]:
+    """Yield a SQLModel database session."""
     with Session(engine) as session:
         yield session
 
 
-def create_db_and_tables():
-    from nono_rent_backend.models import Tenant, Property, Lease, Quittance
+def create_db_and_tables() -> None:
+    """Create all SQLModel tables if missing."""
     from sqlmodel import SQLModel
+
+    import nono_rent_backend.models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)

@@ -45,8 +45,10 @@ uv run python -c "import fastapi; print('Installation réussie')"
 ### Variables d'environnement
 
 Le backend utilise les variables d'environnement suivantes (à définir dans `.env`):
-- `DATABASE_URL`: URL de connexion à la base de données (défaut: sqlite:///:memory:)
+- `DATABASE_URL`: URL de connexion à la base de données (défaut: `sqlite:///./data/app.db`)
 - `DEBUG`: Active le mode debug (true/false)
+
+Par défaut, en exécution applicative, SQLite est stockée dans `./data/app.db` pour permettre la persistance (notamment en conteneur). En tests, la base en mémoire (`sqlite:///:memory:`) reste recommandée.
 
 ## Développement
 
@@ -135,7 +137,7 @@ docker build -t nono_rent_backend .
 ### Exécution avec Docker
 
 ```bash
-docker run -p 8000:8000 nono_rent_backend
+docker run -p 8000:8000 -v "$(pwd)/data:/app/data" nono_rent_backend
 ```
 
 Le conteneur démarre avec la commande: `uv run fastapi run src/nono_rent_backend/main.py --host 0.0.0.0 --port 8000`
@@ -146,6 +148,8 @@ Dans le répertoire parent (monorepo), exécuter:
 ```bash
 docker-compose up backend
 ```
+
+Assurez-vous que le service `backend` monte un volume persistant vers `/app/data` pour conserver le fichier SQLite entre redémarrages.
 
 ## Déploiement
 
@@ -175,7 +179,7 @@ docker-compose up backend
 
 En production, configurez ces variables d'environnement:
 ```bash
-DATABASE_URL=sqlite:///./data/database.db
+DATABASE_URL=sqlite:///./data/app.db
 DEBUG=false
 ```
 
@@ -184,7 +188,7 @@ DEBUG=false
 Les données sont stockées dans le fichier SQLite spécifié par `DATABASE_URL`. 
 Pour sauvegarder:
 ```bash
-cp ./data/database.db ./backups/database_$(date +%Y%m%d_%H%M%S).db
+cp ./data/app.db ./backups/database_$(date +%Y%m%d_%H%M%S).db
 ```
 
 ## Structure du projet
