@@ -14,6 +14,15 @@ RUN uv sync --frozen --no-install-project --no-dev
 # Copy source code
 COPY src/ ./src/
 
+# Default persistent SQLite path (can be overridden)
+ENV DATABASE_URL=sqlite:///./data/app.db
+
+# Ensure sqlite directory exists for mounted volumes
+RUN mkdir -p /app/data
+
+# Persist database directory
+VOLUME ["/app/data"]
+
 # Expose port
 EXPOSE 8000
 
